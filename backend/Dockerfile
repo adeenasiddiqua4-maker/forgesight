@@ -8,6 +8,9 @@ WORKDIR /app/backend
 COPY backend/requirements.txt .
 RUN pip install torch torchvision --index-url ${TORCH_INDEX} && pip install -r requirements.txt
 COPY backend/ .
+# trained models + pretrained backbone ship in the image (docker compose may still mount ./data over them)
+COPY data/models /app/data/models
+COPY data/weights /app/data/weights
 RUN useradd -r -u 10001 forgesight && mkdir -p /app/data && chown -R forgesight /app
 USER forgesight
 ENV FS_MODELS_DIR=/app/data/models FS_STORAGE_DIR=/app/data/storage FS_WEIGHTS_DIR=/app/data/weights FS_ENV=production
