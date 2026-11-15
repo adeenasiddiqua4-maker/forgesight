@@ -2,7 +2,7 @@
 
 ## 1. Push (for whoever has write access to the repository)
 
-The target repository is empty: https://github.com/siddiquaadeena504-max/ForgeSight.git
+The target repository is empty: https://github.com/adeenasiddiqua4-maker/forgesight.git
 Push the contents of this folder (the folder that contains this file) to branch `main`. Keep every file, including
 `data/models/**/model.pt` and `data/weights/*.pth` (trained models, about 50 MB in total, no file over 20 MB) -
 the app cannot detect anything without them. Do not add `node_modules`, `.next` or `data/storage`.
@@ -10,7 +10,7 @@ the app cannot detect anything without them. Do not add `node_modules`, `.next` 
     git init -b main
     git add -A
     git commit -m "ForgeSight inspection platform"
-    git remote add origin https://github.com/siddiquaadeena504-max/ForgeSight.git
+    git remote add origin https://github.com/adeenasiddiqua4-maker/forgesight.git
     git push -u origin main
 
 Check afterwards that GitHub shows the folders `backend`, `frontend`, `data`, `docs`, `scripts` and the file `render.yaml`.
