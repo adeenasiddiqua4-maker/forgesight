@@ -1,0 +1,395 @@
+{
+  "name": "wood_patchcore",
+  "version": "1.0.0",
+  "kind": "anomaly",
+  "material": "wood",
+  "architecture": "PatchCore: frozen ImageNet MobileNetV2 (blocks 6+13), k-center coreset 4000, 320x320",
+  "dataset": "MVTec AD wood (Hugging Face mirror Voxel51/mvtec-ad)",
+  "trained_on": "MVTec train split, defect-free images only",
+  "splits": {
+    "fit_good": 247,
+    "val": 45,
+    "test": 34
+  },
+  "calibration": {
+    "type": "platt",
+    "a": 0.771462292898319,
+    "b": -13.942562767475964
+  },
+  "pixel_threshold": 17.926159537315428,
+  "metrics": {
+    "val": {
+      "auroc": 0.9857,
+      "n": 45,
+      "tp": 32,
+      "fp": 1,
+      "fn": 3,
+      "tn": 9,
+      "accuracy": 0.9111,
+      "accuracy_ci95": [
+        0.7927,
+        0.9649
+      ],
+      "precision": 0.9697,
+      "recall": 0.9143,
+      "recall_ci95": [
+        0.7762,
+        0.9704
+      ],
+      "f1": 0.9412,
+      "false_positive_rate": 0.1,
+      "fpr_ci95": [
+        0.0179,
+        0.4042
+      ],
+      "false_negative_rate": 0.0857,
+      "fnr_ci95": [
+        0.0296,
+        0.2238
+      ]
+    },
+    "test": {
+      "auroc": 1.0,
+      "n": 34,
+      "tp": 21,
+      "fp": 0,
+      "fn": 4,
+      "tn": 9,
+      "accuracy": 0.8824,
+      "accuracy_ci95": [
+        0.7338,
+        0.9533
+      ],
+      "precision": 1.0,
+      "recall": 0.84,
+      "recall_ci95": [
+        0.6535,
+        0.936
+      ],
+      "f1": 0.913,
+      "false_positive_rate": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.2992
+      ],
+      "false_negative_rate": 0.16,
+      "fnr_ci95": [
+        0.064,
+        0.3465
+      ],
+      "calibration": {
+        "ece": 0.1179,
+        "bins": [
+          {
+            "bin": "0.0-0.1",
+            "n": 9,
+            "mean_predicted": 0.0372,
+            "observed_rate": 0.0
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 1,
+            "mean_predicted": 0.1842,
+            "observed_rate": 1.0
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 3,
+            "mean_predicted": 0.4799,
+            "observed_rate": 1.0
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 1,
+            "mean_predicted": 0.5026,
+            "observed_rate": 1.0
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 2,
+            "mean_predicted": 0.7544,
+            "observed_rate": 1.0
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 1,
+            "mean_predicted": 0.861,
+            "observed_rate": 1.0
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 17,
+            "mean_predicted": 0.99,
+            "observed_rate": 1.0
+          }
+        ]
+      }
+    },
+    "test_triage": {
+      "n": 34,
+      "t_low": 0.0522,
+      "t_high": 0.6746,
+      "auto_pass": 6,
+      "auto_defective": 20,
+      "sent_to_review": 8,
+      "review_rate": 0.2353,
+      "auto_decision_accuracy": 1.0,
+      "auto_decision_accuracy_ci95": [
+        0.8713,
+        1.0
+      ],
+      "escaped_defects": 0,
+      "escape_rate_of_defects": 0.0,
+      "escape_rate_ci95": [
+        0.0,
+        0.1332
+      ],
+      "false_rejects": 0,
+      "false_reject_rate_of_good": 0.0,
+      "false_reject_ci95": [
+        0.0,
+        0.2992
+      ]
+    },
+    "test_per_defect": {
+      "color": {
+        "support": 5,
+        "detected_at_0.5": 4,
+        "recall_at_0.5": 0.8,
+        "recall_ci95": [
+          0.3755,
+          0.9638
+        ],
+        "not_auto_passed": 5,
+        "caught_or_reviewed_rate": 1.0
+      },
+      "combined": {
+        "support": 5,
+        "detected_at_0.5": 5,
+        "recall_at_0.5": 1.0,
+        "recall_ci95": [
+          0.5655,
+          1.0
+        ],
+        "not_auto_passed": 5,
+        "caught_or_reviewed_rate": 1.0
+      },
+      "hole": {
+        "support": 6,
+        "detected_at_0.5": 4,
+        "recall_at_0.5": 0.6667,
+        "recall_ci95": [
+          0.3,
+          0.9032
+        ],
+        "not_auto_passed": 6,
+        "caught_or_reviewed_rate": 1.0
+      },
+      "liquid": {
+        "support": 2,
+        "detected_at_0.5": 2,
+        "recall_at_0.5": 1.0,
+        "recall_ci95": [
+          0.3424,
+          1.0
+        ],
+        "not_auto_passed": 2,
+        "caught_or_reviewed_rate": 1.0
+      },
+      "scratch": {
+        "support": 7,
+        "detected_at_0.5": 6,
+        "recall_at_0.5": 0.8571,
+        "recall_ci95": [
+          0.4869,
+          0.9743
+        ],
+        "not_auto_passed": 7,
+        "caught_or_reviewed_rate": 1.0
+      }
+    },
+    "operating_points": [
+      {
+        "validation_tolerance": 0.0,
+        "shipped": false,
+        "val": {
+          "n": 45,
+          "t_low": 0.0522,
+          "t_high": 0.6746,
+          "auto_pass": 7,
+          "auto_defective": 32,
+          "sent_to_review": 6,
+          "review_rate": 0.1333,
+          "auto_decision_accuracy": 1.0,
+          "auto_decision_accuracy_ci95": [
+            0.9103,
+            1.0
+          ],
+          "escaped_defects": 0,
+          "escape_rate_of_defects": 0.0,
+          "escape_rate_ci95": [
+            0.0,
+            0.0989
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2775
+          ]
+        },
+        "test": {
+          "n": 34,
+          "t_low": 0.0522,
+          "t_high": 0.6746,
+          "auto_pass": 6,
+          "auto_defective": 20,
+          "sent_to_review": 8,
+          "review_rate": 0.2353,
+          "auto_decision_accuracy": 1.0,
+          "auto_decision_accuracy_ci95": [
+            0.8713,
+            1.0
+          ],
+          "escaped_defects": 0,
+          "escape_rate_of_defects": 0.0,
+          "escape_rate_ci95": [
+            0.0,
+            0.1332
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2992
+          ]
+        }
+      },
+      {
+        "validation_tolerance": 0.02,
+        "shipped": true,
+        "val": {
+          "n": 45,
+          "t_low": 0.0522,
+          "t_high": 0.6746,
+          "auto_pass": 7,
+          "auto_defective": 32,
+          "sent_to_review": 6,
+          "review_rate": 0.1333,
+          "auto_decision_accuracy": 1.0,
+          "auto_decision_accuracy_ci95": [
+            0.9103,
+            1.0
+          ],
+          "escaped_defects": 0,
+          "escape_rate_of_defects": 0.0,
+          "escape_rate_ci95": [
+            0.0,
+            0.0989
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2775
+          ]
+        },
+        "test": {
+          "n": 34,
+          "t_low": 0.0522,
+          "t_high": 0.6746,
+          "auto_pass": 6,
+          "auto_defective": 20,
+          "sent_to_review": 8,
+          "review_rate": 0.2353,
+          "auto_decision_accuracy": 1.0,
+          "auto_decision_accuracy_ci95": [
+            0.8713,
+            1.0
+          ],
+          "escaped_defects": 0,
+          "escape_rate_of_defects": 0.0,
+          "escape_rate_ci95": [
+            0.0,
+            0.1332
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2992
+          ]
+        }
+      },
+      {
+        "validation_tolerance": 0.05,
+        "shipped": false,
+        "val": {
+          "n": 45,
+          "t_low": 0.2069,
+          "t_high": 0.6746,
+          "auto_pass": 10,
+          "auto_defective": 32,
+          "sent_to_review": 3,
+          "review_rate": 0.0667,
+          "auto_decision_accuracy": 0.9762,
+          "auto_decision_accuracy_ci95": [
+            0.8768,
+            0.9958
+          ],
+          "escaped_defects": 1,
+          "escape_rate_of_defects": 0.0286,
+          "escape_rate_ci95": [
+            0.0051,
+            0.1453
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2775
+          ]
+        },
+        "test": {
+          "n": 34,
+          "t_low": 0.2069,
+          "t_high": 0.6746,
+          "auto_pass": 10,
+          "auto_defective": 20,
+          "sent_to_review": 4,
+          "review_rate": 0.1176,
+          "auto_decision_accuracy": 0.9667,
+          "auto_decision_accuracy_ci95": [
+            0.8333,
+            0.9941
+          ],
+          "escaped_defects": 1,
+          "escape_rate_of_defects": 0.04,
+          "escape_rate_ci95": [
+            0.0071,
+            0.1954
+          ],
+          "false_rejects": 0,
+          "false_reject_rate_of_good": 0.0,
+          "false_reject_ci95": [
+            0.0,
+            0.2992
+          ]
+        }
+      }
+    ],
+    "test_pixel": {
+      "pixel_precision": 0.3639,
+      "pixel_recall": 0.4088,
+      "pixel_f1": 0.3851,
+      "iou": 0.2384
+    }
+  },
+  "limitations": [
+    "Trained and measured only on MVTec AD 'wood': flat, evenly lit close-ups of one wood type under one camera.",
+    "Test half has 25 defective and 9 good images; see the 95% intervals.",
+    "Does not transfer to whole hides / rolls on a conveyor, other colours, finishes or lighting without new data.",
+    "Data licence: MVTec AD is CC BY-NC-SA 4.0 (non-commercial use only)."
+  ],
+  "created_at": "2026-11-16T08:30:30+00:00"
+}

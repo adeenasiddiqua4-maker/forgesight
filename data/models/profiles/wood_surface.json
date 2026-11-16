@@ -1,0 +1,50 @@
+{
+  "key": "wood_surface",
+  "material": "wood",
+  "name": "Wood surface (close-up)",
+  "product_category": "Planed or finished wood, flat close-up view",
+  "requires_reference": false,
+  "mm_per_pixel": null,
+  "detectors": [
+    {
+      "type": "patchcore",
+      "model": "wood_patchcore",
+      "version": "1.0.0",
+      "calibration": {
+        "type": "platt",
+        "a": 0.771462292898319,
+        "b": -13.942562767475964
+      }
+    }
+  ],
+  "decision": {
+    "mode": "fusion",
+    "features": [
+      "wood_patchcore"
+    ],
+    "coef": [
+      0.771462292898319
+    ],
+    "intercept": -13.942562767475964,
+    "t_low": 0.0521956765687251,
+    "t_high": 0.6745575947816935,
+    "image_level_validated": true,
+    "validated": true,
+    "evidence": "wood_patchcore-test"
+  },
+  "drift_reference": {
+    "wood_patchcore": [
+      11.4315,
+      11.7231,
+      12.3311,
+      12.5065,
+      13.1333,
+      13.5829,
+      13.8186,
+      14.3932,
+      15.0569,
+      15.4722,
+      19.0177
+    ]
+  }
+}

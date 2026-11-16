@@ -58,11 +58,7 @@ document.querySelector("#app")!.innerHTML = `
       <h2>Setup</h2>
       <label class="field"><span>Material</span><select id="material"></select></label>
       <label class="field"><span>Detection</span>
-        <select id="mode">
-          <option value="learn">Learn normal from this footage (any material)</option>
-          <option value="crack">Trained model: pavement / concrete cracks</option>
-          <option value="tile">Trained model: ferrite magnetic tiles</option>
-        </select>
+        <select id="mode"><option value="learn">Learn normal from this footage (any material)</option></select>
       </label>
       <p class="note" id="modeNote"></p>
       <div id="learnOpts">
@@ -107,23 +103,49 @@ let stopFlag = false;
 let ref: E.Reference | null = null;
 let entries: Entry[] = [];
 let counts = { frames: 0, ok: 0, check: 0, ng: 0, ms: 0 };
+let lastFrame: HTMLCanvasElement | null = null;
+let lastMode: E.Mode = "learn";
+function keepFrame(src: CanvasImageSource, w: number, h: number) {
+  const c = document.createElement("canvas");
+  const f = Math.min(1, 640 / Math.max(w, h));
+  c.width = Math.round(w * f); c.height = Math.round(h * f);
+  c.getContext("2d")!.drawImage(src, 0, 0, c.width, c.height);
+  lastFrame = c;
+}
 
 function setStatus(text: string, cls = "") { $("#statusText").textContent = text; $("#status").className = `status ${cls}`; }
 function phase(msg: string | null) { const p = $("#phase"); p.hidden = !msg; p.textContent = msg ?? ""; }
 function progress(v: number | null) { ($("#progress") as HTMLElement).style.width = v === null ? "0" : `${Math.round(v * 100)}%`; }
 
+// Each trained model is offered only for the material it was trained on, so e.g. the concrete crack model is never run on leather.
+const MODES: { mode: E.Mode; label: string; materials: string[] }[] = [
+  { mode: "learn", label: "Learn normal from this footage (any material)", materials: [] },
+  { mode: "leather", label: "Trained model: leather surface, close-up", materials: ["leather"] },
+  { mode: "fabric", label: "Trained model: woven fabric", materials: ["textiles"] },
+  { mode: "carpet", label: "Trained model: carpet / pile textile, close-up", materials: ["textiles"] },
+  { mode: "wood", label: "Trained model: wood surface, close-up", materials: ["wood"] },
+  { mode: "crack", label: "Trained model: concrete / pavement cracks", materials: ["construction"] },
+  { mode: "tile", label: "Trained model: ferrite magnetic tiles", materials: ["ceramics"] },
+];
+function modeOptions() {
+  const mat = ($("#material") as HTMLSelectElement).value;
+  const sel = $("#mode") as HTMLSelectElement;
+  const cur = sel.value;
+  const ok = MODES.filter((m) => (m.materials.length === 0 || m.materials.includes(mat)) && (m.mode === "learn" || m.mode === "crack" || m.mode === "tile" || !!E.config?.textures?.[m.mode]));
+  sel.innerHTML = ok.map((m) => `<option value="${m.mode}">${m.label}</option>`).join("");
+  sel.value = ok.some((m) => m.mode === cur) ? cur : "learn";
+  modeNote();
+}
+
 function modeNote() {
   const m = ($("#mode") as HTMLSelectElement).value as E.Mode;
-  const mat = $("#material") as HTMLSelectElement;
   $("#learnOpts").hidden = m !== "learn";
-  if (m === "crack") mat.value = "construction";
-  if (m === "tile") mat.value = "ceramics";
-  mat.disabled = m !== "learn";
-  $("#modeNote").textContent = {
+  const tex = E.config?.textures?.[m];
+  $("#modeNote").textContent = tex ? `Model trained on ${tex.name} close-up images (defect-free and defective) and validated on held-out images. It expects a flat, evenly lit close-up of the surface, not a whole hide or roll on a machine.` : {
     learn: "Learns what good material looks like from the start of your video (or the first photos), then marks anything that differs. Use this for leather and any material without a trained model.",
     crack: "Model trained on pavement and concrete crack photos. Finds and outlines cracks.",
     tile: "Two models trained on ferrite magnetic tiles, combined into a calibrated pass / check / reject decision. Recognises blowholes, breaks, cracks, fray and uneven surface.",
-  }[m];
+  }[m as "learn" | "crack" | "tile"] ?? "";
 }
 
 function resetRun() {
@@ -213,7 +235,7 @@ function draw(src: CanvasImageSource, sw: number, sh: number, r: E.Result, stamp
   const barH = 30 * u;
   ctx.fillStyle = "rgba(0,0,0,0.74)"; ctx.fillRect(0, 0, cv.width, barH);
   ctx.fillStyle = "#f2f1ec"; ctx.font = `600 ${Math.round(10 * u)}px "IBM Plex Mono", ui-monospace, monospace`;
-  const modeName = { learn: "LEARNED REFERENCE", crack: "CONCRETE CRACK MODEL", tile: "FERRITE TILE MODEL" }[mode];
+  const modeName = ({ learn: "LEARNED REFERENCE", crack: "CONCRETE CRACK MODEL", tile: "FERRITE TILE MODEL", leather: "LEATHER MODEL", carpet: "CARPET MODEL", wood: "WOOD MODEL", fabric: "WOVEN FABRIC MODEL" } as Record<E.Mode, string>)[mode];
   ctx.fillText(`MODE ${modeName}   ${stamp}   ${Math.round(r.ms)} ms`, 6 * u, 12 * u);
   ctx.fillText(`FRAMES ${counts.frames}   OK ${counts.ok}   CHECK ${counts.check}   NG ${counts.ng}`, 6 * u, 24 * u);
   const bc = { ok: "#2fa84f", clear: "#9aa0a6", warn: "#e0a325", ng: "#e0463e" }[o.cls]!;
@@ -230,8 +252,21 @@ function frameInfo(r: E.Result) {
     <div class="verdict"><span class="badge big ${OUT[r.outcome].cls}">${OUT[r.outcome].text}</span>${r.pDefect !== null ? `<span class="muted">defect probability <b class="num">${pct(r.pDefect, 1)}</b></span>` : ""}</div>
     <ul class="reasons">${r.reasons.map((x) => `<li>${x}</li>`).join("")}</ul>
     ${rows ? `<div class="tablewrap"><table><thead><tr><th>Finding</th><th>Where</th><th>Confidence</th><th>Severity</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}
-    ${causes.length ? `<div class="hyp"><h3>Possible causes (hypotheses, not observed)</h3><ul>${causes.map((c) => `<li>${c}</li>`).join("")}</ul></div>` : ""}`;
+    ${causes.length ? `<div class="hyp"><h3>Possible causes (hypotheses, not observed)</h3><ul>${causes.map((c) => `<li>${c}</li>`).join("")}</ul></div>` : ""}
+    ${lastMode === "learn" && ref && r.findings.length && lastFrame ? `<div class="teach"><button class="btn small" id="btnTeach">Not a defect: treat as normal</button>
+      <span class="muted">Use for folds, shadows, watermarks or machine parts. Similar spots stop being flagged for the rest of this run.${ref.taught ? ` Taught ${ref.taught} time(s) so far.` : ""}</span></div>` : ""}`;
 }
+
+$("#frameInfo").addEventListener("click", async (ev) => {
+  const b = (ev.target as HTMLElement).closest("#btnTeach") as HTMLButtonElement | null;
+  if (!b || !ref || !lastFrame) return;
+  b.disabled = true; b.textContent = "Learning…";
+  const added = await E.teachNormal(ref, lastFrame);
+  const r = await E.inspectLearned(lastFrame, ref, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
+  draw(lastFrame, lastFrame.width, lastFrame.height, r, "re-checked after teaching", "learn");
+  frameInfo(r);
+  $("#hint").textContent = added ? `Learned ${added} patches as normal. This frame now shows ${r.findings.length} finding(s).` : "Nothing new to learn from this frame.";
+});
 
 function record(r: E.Result, stamp: string, source: string) {
   counts.frames++; counts.ms += r.ms;
@@ -254,6 +289,7 @@ async function analyse(src: CanvasImageSource): Promise<E.Result> {
   const m = getMode();
   if (m === "crack") return E.inspectCrack(src, getMat());
   if (m === "tile") return E.inspectTile(src, getMat());
+  if (m !== "learn") return E.inspectTexture(src, m, getMat());
   return E.inspectLearned(src, ref!, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
 }
 
@@ -269,7 +305,7 @@ function begin() {
 function end(msg?: string) {
   running = false;
   ["#btnVideo", "#btnImages", "#btnCam"].forEach((s) => $(s).classList.remove("disabled"));
-  ["#mode", "#refSec", "#sens", "#step"].forEach((s) => (($(s) as HTMLInputElement).disabled = false));
+  ["#mode", "#material", "#refSec", "#sens", "#step"].forEach((s) => (($(s) as HTMLInputElement).disabled = false));
   modeNote();
   $("#btnStop").hidden = true;
   phase(null);
@@ -311,6 +347,7 @@ async function runVideo(srcUrl: string, name: string) {
     for (let t = start; t < v.duration && !stopFlag; t += step) {
       await seek(t);
       const r = await analyse(v);
+      keepFrame(v, v.videoWidth, v.videoHeight); lastMode = getMode();
       const stamp = `t=${fmtT(t)}`;
       draw(v, v.videoWidth, v.videoHeight, r, stamp, getMode());
       record(r, stamp, name);
@@ -342,6 +379,7 @@ async function runImages(files: File[]) {
     for (let i = from; i < imgs.length && !stopFlag; i++) {
       const bmp = await load(imgs[i]);
       const r = await analyse(bmp);
+      keepFrame(bmp, bmp.width, bmp.height); lastMode = getMode();
       record(r, imgs[i].name, "photo");
       draw(bmp, bmp.width, bmp.height, r, imgs[i].name, getMode());
       frameInfo(r);
@@ -381,6 +419,7 @@ async function runCamera() {
     while (!stopFlag) {
       const c = grab();
       const r = await analyse(c);
+      keepFrame(c, c.width, c.height); lastMode = getMode();
       const stamp = `live ${fmtT((performance.now() - t0) / 1000)}`;
       record(r, stamp, "camera");
       draw(c, c.width, c.height, r, stamp, getMode());
@@ -393,12 +432,8 @@ async function runCamera() {
 }
 
 // ------------------------------------------------------------------ wiring
-$("#mode").addEventListener("change", () => {
-  const m = getMode();
-  $("#refLabel").textContent = "Defect-free seconds at start";
-  if (m !== "learn") return modeNote();
-  modeNote();
-});
+$("#mode").addEventListener("change", modeNote);
+$("#material").addEventListener("change", modeOptions);
 $("#inVideo").addEventListener("change", (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f && !running) runVideo(URL.createObjectURL(f), f.name); (e.target as HTMLInputElement).value = ""; });
 $("#inImages").addEventListener("change", (e) => {
   const fs = Array.from((e.target as HTMLInputElement).files ?? []);
@@ -412,8 +447,11 @@ $("#btnCam").addEventListener("click", () => { if (!running) runCamera(); });
 $("#btnStop").addEventListener("click", () => { stopFlag = true; });
 document.querySelectorAll<HTMLButtonElement>("[data-sample]").forEach((b) => b.addEventListener("click", () => {
   if (running) return;
+  // samples set their own material first, so the detection list contains the sample's model
+  ($("#material") as HTMLSelectElement).value = b.dataset.mode === "crack" ? "construction" : "ceramics";
+  modeOptions();
   ($("#mode") as HTMLSelectElement).value = b.dataset.mode!;
-  if (b.dataset.mode === "learn") { ($("#material") as HTMLSelectElement).value = "ceramics"; ($("#refSec") as HTMLInputElement).value = b.dataset.ref!; }
+  if (b.dataset.ref) ($("#refSec") as HTMLInputElement).value = b.dataset.ref;
   modeNote();
   runVideo(new URL(b.dataset.sample!, document.baseURI).href, b.textContent!.trim());
 }));
@@ -436,7 +474,7 @@ E.loadEngine((m) => setStatus(`${m}…`)).then(() => {
   const sel = $("#material") as HTMLSelectElement;
   sel.innerHTML = E.config.materials.map((m) => `<option value="${m.key}">${m.name}</option>`).join("");
   sel.value = "leather";
-  modeNote();
+  modeOptions();
   setStatus("Ready · runs in your browser", "ready");
   lock(false);
   document.querySelectorAll<HTMLButtonElement>("[data-sample]").forEach((b) => (b.disabled = false));
@@ -447,4 +485,4 @@ E.loadEngine((m) => setStatus(`${m}…`)).then(() => {
 });
 
 // automated accuracy check hook (used by the test suite; harmless for viewers)
-(window as unknown as Record<string, unknown>).__fs = { E, setMode: (m: E.Mode) => { ($("#mode") as HTMLSelectElement).value = m; modeNote(); } };
+(window as unknown as Record<string, unknown>).__fs = { E };

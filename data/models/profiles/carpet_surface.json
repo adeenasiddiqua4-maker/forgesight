@@ -1,0 +1,50 @@
+{
+  "key": "carpet_surface",
+  "material": "textiles",
+  "name": "Carpet / pile textile (close-up)",
+  "product_category": "Tufted carpet or pile fabric, flat close-up view",
+  "requires_reference": false,
+  "mm_per_pixel": null,
+  "detectors": [
+    {
+      "type": "patchcore",
+      "model": "carpet_patchcore",
+      "version": "1.0.0",
+      "calibration": {
+        "type": "platt",
+        "a": 1.2377785369827368,
+        "b": -17.323185051118855
+      }
+    }
+  ],
+  "decision": {
+    "mode": "fusion",
+    "features": [
+      "carpet_patchcore"
+    ],
+    "coef": [
+      1.2377785369827368
+    ],
+    "intercept": -17.323185051118855,
+    "t_low": 0.02004472526382307,
+    "t_high": 0.3576379692872847,
+    "image_level_validated": true,
+    "validated": true,
+    "evidence": "carpet_patchcore-test"
+  },
+  "drift_reference": {
+    "carpet_patchcore": [
+      10.6841,
+      10.8768,
+      10.9226,
+      10.9991,
+      11.0833,
+      11.9241,
+      12.4014,
+      12.5418,
+      12.7761,
+      12.8742,
+      13.5222
+    ]
+  }
+}

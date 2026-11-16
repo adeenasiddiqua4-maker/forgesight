@@ -3,7 +3,7 @@
 import * as ort from "onnxruntime-web/wasm";
 
 export type Outcome = "pass" | "clear" | "review" | "defective";
-export type Mode = "learn" | "crack" | "tile";
+export type Mode = "learn" | "crack" | "tile" | "leather" | "carpet" | "wood" | "fabric";
 export type Sensitivity = "low" | "normal" | "high";
 
 export interface Finding {
@@ -39,6 +39,8 @@ interface Config {
     platt: Record<string, { a: number; b: number }>; disagreementDelta: number;
   };
   crack: { segInput: [number, number]; classes: string[]; segPixelThreshold: number; regionConfident: number };
+  textures: Record<string, { input: number; memoryRows: number; platt: { a: number; b: number }; t_low: number; t_high: number;
+    pixelThreshold: number; scoreScale: number; name: string }>;
   materials: { key: string; name: string; family: string; imaging: string }[];
   taxonomy: Record<string, { label: string; category: string; crit: number }>;
   causes: Record<string, string[]>;
@@ -324,7 +326,7 @@ async function knn(emb: Float32Array, mem: ort.Tensor): Promise<Float32Array> {
 }
 
 // ------------------------------------------------------------------ mode 1: learn normal appearance from reference footage
-export interface Reference { mem: ort.Tensor; w: number; h: number; med: number; mad: number; frames: number }
+export interface Reference { mem: ort.Tensor; w: number; h: number; med: number; mad: number; frames: number; taught: number }
 const K_SIGMA: Record<Sensitivity, number> = { low: 4.5, normal: 3.0, high: 2.0 };
 
 export function learnSize(srcW: number, srcH: number, long = 448): [number, number] {
@@ -398,7 +400,7 @@ export async function learnReference(frames: CanvasImageSource[], srcW: number, 
   const core = coreset(cat(embs), embs.length * P, 12000, 2500);
   const med = median(peaks);
   const mad = Math.max(median(peaks.map((p) => Math.abs(p - med))) * 1.4826, 0.02 * med);
-  return { mem: new ort.Tensor("float32", core, [core.length / 128, 128]), w, h, med, mad, frames: frames.length };
+  return { mem: new ort.Tensor("float32", core, [core.length / 128, 128]), w, h, med, mad, frames: frames.length, taught: 0 };
 }
 
 function median(a: number[]) { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
@@ -420,6 +422,23 @@ export async function inspectLearned(src: CanvasImageSource, ref: Reference, sen
   let outcome: Outcome = findings.length ? "review" : "clear";
   if (q.status === "fail") { outcome = "review"; reasons.unshift(`Image quality: ${q.note}.`); }
   return { outcome, pDefect: null, reasons, findings, mask: paintMask(comps, w, h), maskW: w, maskH: h, ms: performance.now() - t0, quality: q.status };
+}
+
+/** "Not a defect": add the unusual patches of this frame to the learned normal appearance, so similar spots stop being flagged. */
+export async function teachNormal(ref: Reference, src: CanvasImageSource): Promise<number> {
+  const emb = await embed(pixels(src, ref.w, ref.h));
+  const d = await knn(emb, ref.mem);
+  const thr = ref.med + K_SIGMA.high * ref.mad;
+  const keep: number[] = [];
+  d.forEach((v, i) => { if (v > 0.5 * thr) keep.push(i); });
+  if (!keep.length) return 0;
+  const old = ref.mem.data as Float32Array;
+  const mem = new Float32Array(old.length + keep.length * 128);
+  mem.set(old);
+  keep.forEach((p, k) => mem.set(emb.subarray(p * 128, p * 128 + 128), old.length + k * 128));
+  ref.mem = new ort.Tensor("float32", mem, [mem.length / 128, 128]);
+  ref.taught++;
+  return keep.length;
 }
 
 // ------------------------------------------------------------------ mode 2: trained pavement / concrete crack model
@@ -502,4 +521,31 @@ export async function inspectTile(src: CanvasImageSource, material: string): Pro
   }
   if (q.status === "fail") { outcome = "review"; reasons.unshift(`Image quality: ${q.note}.`); }
   return { outcome, pDefect: p, reasons, findings, mask: paintMask(comps, w, h), maskW: w, maskH: h, ms: performance.now() - t0, quality: q.status, scores: { pc, seg, p } };
+}
+
+// ------------------------------------------------------------------ mode 4: trained texture anomaly models (leather, carpet, wood close-ups)
+const textureMem: Record<string, ort.Tensor> = {};
+
+export async function inspectTexture(src: CanvasImageSource, kind: string, material: string): Promise<Result> {
+  const t0 = performance.now();
+  const c = config.textures[kind];
+  if (!c) throw new Error(`No trained model for ${kind}`);
+  textureMem[kind] ??= new ort.Tensor("float32", new Float32Array(await fetchBuf(`models/${kind}_memory.bin`)), [c.memoryRows, 128]);
+  const n = c.input, g = n / 8;
+  const px = pixels(src, n, n);
+  const q = quality(px.gray, n, n);
+  const d = await knn(await embed(px), textureMem[kind]);
+  const score = Math.max(...gaussian(d, g, g, 1.0));
+  const p = 1 / (1 + Math.exp(-Math.max(-40, Math.min(40, c.platt.a * score + c.platt.b))));
+  const full = gaussian(resize(d, g, g, n, n), n, n, Math.max(1, 0.012 * n));
+  const comps = components(full, n, n, c.pixelThreshold, Math.max(16, Math.round(0.0004 * n * n)));
+  const findings = comps.map((cc) => makeFinding(cc, n, n, heuristicType(cc, px.gray, n, n), "heuristic", null, cc.peak / c.scoreScale, "anomaly strength", material));
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  let outcome: Outcome, reasons: string[];
+  if (p <= c.t_low) { outcome = "pass"; reasons = [`Calibrated defect probability ${pct(p)} is below the validated pass threshold ${pct(c.t_low)}.`]; }
+  else if (p >= c.t_high) { outcome = "defective"; reasons = [`Calibrated defect probability ${pct(p)} is above the validated reject threshold ${pct(c.t_high)}.`]; }
+  else { outcome = "review"; reasons = [`Calibrated defect probability ${pct(p)} lies inside the review band (${pct(c.t_low)} to ${pct(c.t_high)}).`]; }
+  reasons.push(`Validated on ${c.name} close-up images only. Other products, colours, distances or lighting need their own validation.`);
+  if (q.status === "fail") { outcome = "review"; reasons.unshift(`Image quality: ${q.note}.`); }
+  return { outcome, pDefect: p, reasons, findings, mask: paintMask(comps, n, n), maskW: n, maskH: n, ms: performance.now() - t0, quality: q.status };
 }

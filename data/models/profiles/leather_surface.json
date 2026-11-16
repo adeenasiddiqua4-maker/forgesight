@@ -1,0 +1,50 @@
+{
+  "key": "leather_surface",
+  "material": "leather",
+  "name": "Leather surface (close-up)",
+  "product_category": "Finished leather, flat close-up view",
+  "requires_reference": false,
+  "mm_per_pixel": null,
+  "detectors": [
+    {
+      "type": "patchcore",
+      "model": "leather_patchcore",
+      "version": "1.0.0",
+      "calibration": {
+        "type": "platt",
+        "a": 4.946400075519735,
+        "b": -66.921171161758
+      }
+    }
+  ],
+  "decision": {
+    "mode": "fusion",
+    "features": [
+      "leather_patchcore"
+    ],
+    "coef": [
+      4.946400075519735
+    ],
+    "intercept": -66.921171161758,
+    "t_low": 0.2574459327460421,
+    "t_high": 0.4151830505340035,
+    "image_level_validated": true,
+    "validated": true,
+    "evidence": "leather_patchcore-test"
+  },
+  "drift_reference": {
+    "leather_patchcore": [
+      10.7857,
+      10.9309,
+      11.0392,
+      11.199,
+      11.5805,
+      11.7896,
+      11.8837,
+      12.3111,
+      12.4783,
+      12.8567,
+      13.46
+    ]
+  }
+}

@@ -88,6 +88,21 @@ pc = PatchCore.load(MODELS / "mt_patchcore" / "1.0.0" / "model.pt")
 pc.memory.numpy().astype(np.float32).tofile(OUT / "tile_memory.bin")
 prof = json.loads((MODELS / "profiles" / "magnetic_tile.json").read_text())
 crack_prof = json.loads((MODELS / "profiles" / "pavement_crack.json").read_text())
+textures = {}
+TEX_NAMES = {"leather": "MVTec AD leather", "carpet": "MVTec AD carpet", "wood": "MVTec AD wood"}
+for kind in ("leather", "carpet", "wood"):
+    base = MODELS / f"{kind}_patchcore" / "1.0.0"
+    if not (base / "model.pt").exists():
+        continue
+    tpc = PatchCore.load(base / "model.pt")
+    if tuple(tpc.taps) != (6, 13):
+        raise SystemExit(f"{kind}: web export supports taps (6, 13) only, got {tpc.taps}")
+    tpc.memory.numpy().astype(np.float32).tofile(OUT / f"{kind}_memory.bin")
+    tprof = json.loads((MODELS / "profiles" / f"{kind}_surface.json").read_text())
+    textures[kind] = {"input": int(tpc.input_size[0]), "memoryRows": int(tpc.memory.shape[0]), "platt": tprof["detectors"][0]["calibration"],
+                      "t_low": tprof["decision"]["t_low"], "t_high": tprof["decision"]["t_high"], "pixelThreshold": tpc.pixel_threshold,
+                      "scoreScale": tpc.score_scale, "name": TEX_NAMES[kind]}
+
 config = {
     "tile": {"segInput": list(tile.input_size), "pcInput": list(pc.input_size), "classes": tile.classes, "segPixelThreshold": tile.pixel_threshold,
              "pcPixelThreshold": pc.pixel_threshold, "memoryRows": int(pc.memory.shape[0]),
@@ -95,6 +110,7 @@ config = {
              "platt": {d["model"]: d["calibration"] for d in prof["detectors"]}, "disagreementDelta": 0.6},
     "crack": {"segInput": list(crack.input_size), "classes": crack.classes, "segPixelThreshold": crack.pixel_threshold,
               "regionConfident": crack_prof["decision"]["region_confident"]},
+    "textures": textures,
     "materials": [{"key": m["key"], "name": m["name"], "family": m["family"], "imaging": m["imaging_notes"]} for m in K.MATERIALS],
     "taxonomy": {k: {"label": v[0], "category": v[1], "crit": v[2]} for k, v in K.TAXONOMY.items()},
     "causes": {f"{t}|{m['key']}": K.cause_hypotheses(t, m["key"]) for t in K.TAXONOMY for m in K.MATERIALS if K.cause_hypotheses(t, m["key"])},
