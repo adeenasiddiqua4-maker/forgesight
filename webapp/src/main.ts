@@ -44,6 +44,8 @@ document.querySelector("#app")!.innerHTML = `
         <label class="btn" id="btnImages">Analyse photos<input id="inImages" type="file" accept="image/*" multiple hidden></label>
         <button class="btn" id="btnCam">Camera</button>
         <button class="btn danger" id="btnStop" hidden>Stop</button>
+        <button class="btn" id="btnZone" title="Drag a box over a watermark, logo, timestamp or machine part: nothing inside it is flagged">Ignore an area</button>
+        <button class="btn small ghost" id="btnZoneClear" hidden>Clear ignored areas</button>
         <span class="hint" id="hint"></span>
       </div>
     </div>
@@ -200,6 +202,12 @@ function draw(src: CanvasImageSource, sw: number, sh: number, r: E.Result, stamp
   cv.width = Math.round(sw * f);
   cv.height = Math.round(sh * f);
   ctx.drawImage(src, 0, 0, cv.width, cv.height);
+  zones.forEach((z) => {
+    const [zx, zy, zw, zh] = [z.x * cv.width, z.y * cv.height, z.w * cv.width, z.h * cv.height];
+    ctx.fillStyle = "rgba(20,22,25,0.45)"; ctx.fillRect(zx, zy, zw, zh);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = "#9aa0a6"; ctx.lineWidth = 1.5; ctx.strokeRect(zx, zy, zw, zh); ctx.setLineDash([]);
+    ctx.fillStyle = "#c9ccd0"; ctx.font = `600 ${Math.max(10, Math.round(cv.width / 70))}px "IBM Plex Mono", ui-monospace, monospace`; ctx.fillText("IGNORED", zx + 4, zy + Math.max(12, cv.width / 60));
+  });
   // masks
   const mc = document.createElement("canvas");
   mc.width = r.maskW; mc.height = r.maskH;
@@ -262,7 +270,7 @@ $("#frameInfo").addEventListener("click", async (ev) => {
   if (!b || !ref || !lastFrame) return;
   b.disabled = true; b.textContent = "Learning…";
   const added = await E.teachNormal(ref, lastFrame);
-  const r = await E.inspectLearned(lastFrame, ref, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
+  const r = applyZones(await E.inspectLearned(lastFrame, ref, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat()), "learn");
   draw(lastFrame, lastFrame.width, lastFrame.height, r, "re-checked after teaching", "learn");
   frameInfo(r);
   $("#hint").textContent = added ? `Learned ${added} patches as normal. This frame now shows ${r.findings.length} finding(s).` : "Nothing new to learn from this frame.";
@@ -287,11 +295,83 @@ const num = (sel: string, d: number) => { const v = parseFloat(($(sel) as HTMLIn
 
 async function analyse(src: CanvasImageSource): Promise<E.Result> {
   const m = getMode();
-  if (m === "crack") return E.inspectCrack(src, getMat());
-  if (m === "tile") return E.inspectTile(src, getMat());
-  if (m !== "learn") return E.inspectTexture(src, m, getMat());
-  return E.inspectLearned(src, ref!, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
+  let r: E.Result;
+  if (m === "crack") r = await E.inspectCrack(src, getMat());
+  else if (m === "tile") r = await E.inspectTile(src, getMat());
+  else if (m !== "learn") r = await E.inspectTexture(src, m, getMat());
+  else r = await E.inspectLearned(src, ref!, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
+  return applyZones(r, m);
 }
+
+// ------------------------------------------------------------------ ignored areas (watermarks, logos, timestamps, machine parts)
+type Zone = { x: number; y: number; w: number; h: number }; // normalised 0..1
+let zones: Zone[] = [];
+try { zones = JSON.parse(localStorage.getItem("fs-zones") ?? "[]"); } catch { zones = []; }
+const saveZones = () => { try { localStorage.setItem("fs-zones", JSON.stringify(zones)); } catch { /* storage unavailable */ } };
+
+function applyZones(r: E.Result, m: E.Mode): E.Result {
+  if (!zones.length || !r.findings.length) return r;
+  const inZone = (f: E.Finding) => {
+    const [x, y, w, h] = f.box;
+    const area = w * h;
+    return zones.some((z) => {
+      const ox = Math.max(0, Math.min(x + w, (z.x + z.w) * r.maskW) - Math.max(x, z.x * r.maskW));
+      const oy = Math.max(0, Math.min(y + h, (z.y + z.h) * r.maskH) - Math.max(y, z.y * r.maskH));
+      return (ox * oy) / area > 0.5;
+    });
+  };
+  const keep: number[] = [];
+  r.findings.forEach((f, i) => { if (!inZone(f)) keep.push(i); });
+  const hidden = r.findings.length - keep.length;
+  if (!hidden) return r;
+  const remap = new Uint8Array(r.findings.length + 1);
+  keep.forEach((old, k) => (remap[old + 1] = k + 1));
+  const mask = r.mask.map((v) => remap[v]);
+  const findings = keep.map((i) => r.findings[i]);
+  let outcome = r.outcome;
+  const reasons = [...r.reasons];
+  if (m === "learn") {
+    outcome = r.quality === "fail" || findings.length ? "review" : "clear";
+    if (!findings.length) reasons.splice(0, reasons.length, "No area differs from the learned normal appearance outside the ignored areas.", reasons[reasons.length - 1]);
+  } else if (m === "crack") {
+    const thr = E.config.crack.regionConfident;
+    outcome = r.quality === "fail" ? "review" : findings.some((f) => f.conf >= thr) ? "defective" : findings.length ? "review" : "clear";
+  }
+  reasons.push(`${hidden} mark(s) inside ignored areas were hidden.`);
+  return { ...r, findings, mask, outcome, reasons };
+}
+
+let lastResult: { r: E.Result; stamp: string; mode: E.Mode } | null = null;
+function redrawLast() {
+  if (!lastFrame || !lastResult) return;
+  const r = applyZones(lastResult.r, lastResult.mode);
+  draw(lastFrame, lastFrame.width, lastFrame.height, r, lastResult.stamp, lastResult.mode);
+  frameInfo(r);
+}
+function renderZoneButtons() { $("#btnZoneClear").hidden = zones.length === 0; $("#btnZoneClear").textContent = `Clear ignored areas (${zones.length})`; }
+let zoneMode = false;
+let zoneStart: [number, number] | null = null;
+$("#btnZone").addEventListener("click", () => {
+  zoneMode = !zoneMode;
+  $("#btnZone").classList.toggle("primary", zoneMode);
+  $("#btnZone").textContent = zoneMode ? "Drag over the area to ignore…" : "Ignore an area";
+  cv.style.cursor = zoneMode ? "crosshair" : "";
+});
+$("#btnZoneClear").addEventListener("click", () => { zones = []; saveZones(); renderZoneButtons(); redrawLast(); });
+const rel = (e: PointerEvent): [number, number] => { const b = cv.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - b.left) / b.width)), Math.min(1, Math.max(0, (e.clientY - b.top) / b.height))]; };
+cv.addEventListener("pointerdown", (e) => { if (!zoneMode) return; zoneStart = rel(e); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointerup", (e) => {
+  if (!zoneMode || !zoneStart) return;
+  const [x1, y1] = rel(e), [x0, y0] = zoneStart;
+  zoneStart = null;
+  const z = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+  if (z.w > 0.01 && z.h > 0.01) { zones.push(z); saveZones(); }
+  zoneMode = false;
+  $("#btnZone").classList.remove("primary"); $("#btnZone").textContent = "Ignore an area"; cv.style.cursor = "";
+  renderZoneButtons();
+  redrawLast();
+});
+renderZoneButtons();
 
 function begin() {
   running = true; stopFlag = false;
@@ -348,6 +428,7 @@ async function runVideo(srcUrl: string, name: string) {
       await seek(t);
       const r = await analyse(v);
       keepFrame(v, v.videoWidth, v.videoHeight); lastMode = getMode();
+      lastResult = { r, stamp: "", mode: getMode() };
       const stamp = `t=${fmtT(t)}`;
       draw(v, v.videoWidth, v.videoHeight, r, stamp, getMode());
       record(r, stamp, name);
@@ -380,6 +461,7 @@ async function runImages(files: File[]) {
       const bmp = await load(imgs[i]);
       const r = await analyse(bmp);
       keepFrame(bmp, bmp.width, bmp.height); lastMode = getMode();
+      lastResult = { r, stamp: "", mode: getMode() };
       record(r, imgs[i].name, "photo");
       draw(bmp, bmp.width, bmp.height, r, imgs[i].name, getMode());
       frameInfo(r);
@@ -420,6 +502,7 @@ async function runCamera() {
       const c = grab();
       const r = await analyse(c);
       keepFrame(c, c.width, c.height); lastMode = getMode();
+      lastResult = { r, stamp: "", mode: getMode() };
       const stamp = `live ${fmtT((performance.now() - t0) / 1000)}`;
       record(r, stamp, "camera");
       draw(c, c.width, c.height, r, stamp, getMode());
