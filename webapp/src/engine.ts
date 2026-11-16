@@ -41,6 +41,7 @@ interface Config {
   crack: { segInput: [number, number]; classes: string[]; segPixelThreshold: number; regionConfident: number };
   textures: Record<string, { input: number; memoryRows: number; platt: { a: number; b: number }; t_low: number; t_high: number;
     pixelThreshold: number; scoreScale: number; name: string }>;
+  fabric: { input: [number, number]; platt: { a: number; b: number }; t_low: number; t_high: number; pixelThreshold: number; name: string } | null;
   materials: { key: string; name: string; family: string; imaging: string }[];
   taxonomy: Record<string, { label: string; category: string; crit: number }>;
   causes: Record<string, string[]>;
@@ -75,7 +76,7 @@ export async function loadEngine(onStep: (msg: string) => void) {
   sKnn = await ort.InferenceSession.create(await fetchBuf("models/knn.onnx"));
 }
 
-function session(name: "crack_seg" | "tile_seg"): Promise<ort.InferenceSession> {
+function session(name: "crack_seg" | "tile_seg" | "fabric_seg"): Promise<ort.InferenceSession> {
   lazy[name] ??= fetchBuf(`models/${name}.onnx`).then((b) => ort.InferenceSession.create(b));
   return lazy[name];
 }
@@ -548,4 +549,34 @@ export async function inspectTexture(src: CanvasImageSource, kind: string, mater
   reasons.push(`Validated on ${c.name} close-up images only. Other products, colours, distances or lighting need their own validation.`);
   if (q.status === "fail") { outcome = "review"; reasons.unshift(`Image quality: ${q.note}.`); }
   return { outcome, pDefect: p, reasons, findings, mask: paintMask(comps, n, n), maskW: n, maskH: n, ms: performance.now() - t0, quality: q.status };
+}
+
+// ------------------------------------------------------------------ mode 5: trained woven-fabric defect model (supervised segmentation)
+export async function inspectFabric(src: CanvasImageSource, material: string): Promise<Result> {
+  const t0 = performance.now();
+  const c = config.fabric;
+  if (!c) throw new Error("No trained fabric model");
+  const [h, w] = c.input;
+  const px = pixels(src, w, h);
+  const q = quality(px.gray, w, h);
+  const out = (await (await session("fabric_seg")).run({ image: imageTensor(px) })).probs.data as Float32Array;
+  const n = w * h;
+  const defect = new Float32Array(n);
+  for (let i = 0; i < n; i++) defect[i] = 1 - out[i];
+  const sorted = Float32Array.from(defect).sort();
+  const k = Math.max(8, Math.floor(n / 1000));
+  let seg = 0;
+  for (let i = n - k; i < n; i++) seg += sorted[i];
+  seg /= k;
+  const p = 1 / (1 + Math.exp(-Math.max(-40, Math.min(40, c.platt.a * seg + c.platt.b))));
+  const comps = components(defect, w, h, c.pixelThreshold, Math.max(6, Math.round(0.00005 * n)));
+  const findings = comps.map((cc) => makeFinding(cc, w, h, heuristicType(cc, px.gray, w, h), "heuristic", null, cc.peak, "model probability", material));
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  let outcome: Outcome, reasons: string[];
+  if (p <= c.t_low) { outcome = "pass"; reasons = [`Calibrated defect probability ${pct(p)} is below the validated pass threshold ${pct(c.t_low)}.`]; }
+  else if (p >= c.t_high) { outcome = "defective"; reasons = [`Calibrated defect probability ${pct(p)} is above the validated reject threshold ${pct(c.t_high)}.`]; }
+  else { outcome = "review"; reasons = [`Calibrated defect probability ${pct(p)} lies inside the review band (${pct(c.t_low)} to ${pct(c.t_high)}).`]; }
+  reasons.push("Validated on ZJU-Leaper woven fabric images only. Other fabrics, cameras or lighting need their own validation. The model finds defects but does not name their type.");
+  if (q.status === "fail") { outcome = "review"; reasons.unshift(`Image quality: ${q.note}.`); }
+  return { outcome, pDefect: p, reasons, findings, mask: paintMask(comps, w, h), maskW: w, maskH: h, ms: performance.now() - t0, quality: q.status };
 }

@@ -3,8 +3,9 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 // base64 text copies of the binary models for hosts that only serve standard web types
-for (const f of ["features.onnx", "knn.onnx", "crack_seg.onnx", "tile_seg.onnx", "tile_memory.bin"])
-  writeFileSync(`dist/models/${f}.b64.txt`, readFileSync(`dist/models/${f}`).toString("base64"));
+import { existsSync } from "node:fs";
+for (const f of ["features.onnx", "knn.onnx", "crack_seg.onnx", "tile_seg.onnx", "fabric_seg.onnx", "tile_memory.bin", "leather_memory.bin", "carpet_memory.bin", "wood_memory.bin"])
+  if (existsSync(`dist/models/${f}`)) writeFileSync(`dist/models/${f}.b64.txt`, readFileSync(`dist/models/${f}`).toString("base64"));
 
 const ORT = "node_modules/onnxruntime-web/dist/";
 mkdirSync("dist/ort", { recursive: true });

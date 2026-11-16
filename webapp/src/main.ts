@@ -133,7 +133,7 @@ function modeOptions() {
   const mat = ($("#material") as HTMLSelectElement).value;
   const sel = $("#mode") as HTMLSelectElement;
   const cur = sel.value;
-  const ok = MODES.filter((m) => (m.materials.length === 0 || m.materials.includes(mat)) && (m.mode === "learn" || m.mode === "crack" || m.mode === "tile" || !!E.config?.textures?.[m.mode]));
+  const ok = MODES.filter((m) => (m.materials.length === 0 || m.materials.includes(mat)) && (m.mode === "learn" || m.mode === "crack" || m.mode === "tile" || (m.mode === "fabric" ? !!E.config?.fabric : !!E.config?.textures?.[m.mode])));
   sel.innerHTML = ok.map((m) => `<option value="${m.mode}">${m.label}</option>`).join("");
   sel.value = ok.some((m) => m.mode === cur) ? cur : "learn";
   modeNote();
@@ -143,6 +143,7 @@ function modeNote() {
   const m = ($("#mode") as HTMLSelectElement).value as E.Mode;
   $("#learnOpts").hidden = m !== "learn";
   const tex = E.config?.textures?.[m];
+  if (m === "fabric") { $("#modeNote").textContent = "Model trained on woven fabric images (19 fabric patterns, defective and defect-free) and validated on the dataset's separate test split. Works on flat, evenly lit fabric seen from above."; return; }
   $("#modeNote").textContent = tex ? `Model trained on ${tex.name} close-up images (defect-free and defective) and validated on held-out images. It expects a flat, evenly lit close-up of the surface, not a whole hide or roll on a machine.` : {
     learn: "Learns what good material looks like from the start of your video (or the first photos), then marks anything that differs. Use this for leather and any material without a trained model.",
     crack: "Model trained on pavement and concrete crack photos. Finds and outlines cracks.",
@@ -298,6 +299,7 @@ async function analyse(src: CanvasImageSource): Promise<E.Result> {
   let r: E.Result;
   if (m === "crack") r = await E.inspectCrack(src, getMat());
   else if (m === "tile") r = await E.inspectTile(src, getMat());
+  else if (m === "fabric") r = await E.inspectFabric(src, getMat());
   else if (m !== "learn") r = await E.inspectTexture(src, m, getMat());
   else r = await E.inspectLearned(src, ref!, ($("#sens") as HTMLSelectElement).value as E.Sensitivity, getMat());
   return applyZones(r, m);

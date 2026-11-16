@@ -103,6 +103,16 @@ for kind in ("leather", "carpet", "wood"):
                       "t_low": tprof["decision"]["t_low"], "t_high": tprof["decision"]["t_high"], "pixelThreshold": tpc.pixel_threshold,
                       "scoreScale": tpc.score_scale, "name": TEX_NAMES[kind]}
 
+fabric = None
+fab_base = MODELS / "fabric_segnet" / "1.0.0"
+if (fab_base / "model.pt").exists():
+    fab = SegDetector.load(fab_base / "model.pt")
+    with torch.no_grad():
+        export(Seg(fab), (torch.rand(1, 3, *fab.input_size),), "fabric_seg.onnx", ["image"], ["probs"])
+    fprof = json.loads((MODELS / "profiles" / "woven_fabric.json").read_text())
+    fabric = {"input": list(fab.input_size), "platt": fprof["detectors"][0]["calibration"], "t_low": fprof["decision"]["t_low"],
+              "t_high": fprof["decision"]["t_high"], "pixelThreshold": fab.pixel_threshold, "name": "ZJU-Leaper woven fabric"}
+
 config = {
     "tile": {"segInput": list(tile.input_size), "pcInput": list(pc.input_size), "classes": tile.classes, "segPixelThreshold": tile.pixel_threshold,
              "pcPixelThreshold": pc.pixel_threshold, "memoryRows": int(pc.memory.shape[0]),
@@ -111,6 +121,7 @@ config = {
     "crack": {"segInput": list(crack.input_size), "classes": crack.classes, "segPixelThreshold": crack.pixel_threshold,
               "regionConfident": crack_prof["decision"]["region_confident"]},
     "textures": textures,
+    "fabric": fabric,
     "materials": [{"key": m["key"], "name": m["name"], "family": m["family"], "imaging": m["imaging_notes"]} for m in K.MATERIALS],
     "taxonomy": {k: {"label": v[0], "category": v[1], "crit": v[2]} for k, v in K.TAXONOMY.items()},
     "causes": {f"{t}|{m['key']}": K.cause_hypotheses(t, m["key"]) for t in K.TAXONOMY for m in K.MATERIALS if K.cause_hypotheses(t, m["key"])},
