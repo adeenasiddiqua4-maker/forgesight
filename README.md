@@ -13,6 +13,12 @@ decision rule), and a material without a validated model is screened and routed 
 > training-free screening detector whose candidates always go to human review until you collect data and fit a model in the
 > app. Nothing reaches the 99.9% target and no accuracy figure in the UI or docs is estimated - see *Known limitations*.
 
+## Browser web app (no server needed)
+
+`webapp/` is a static version that runs the detection inside the browser, so it can be hosted for free or opened from
+Claude: https://claude.ai/artifact/HsE6spe1fpFqRsTGbXChnQ . Its decisions match the server version (277/277 identical
+on the tile test set). See `webapp/README.md`.
+
 ## Contents
 
 ```

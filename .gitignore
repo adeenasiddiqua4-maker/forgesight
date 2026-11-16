@@ -11,3 +11,5 @@ data/*.log
 *.db
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
+webapp/node_modules/
+webapp/dist/
