@@ -1,0 +1,35 @@
+{
+  "key": "woven_fabric",
+  "material": "textiles",
+  "name": "Woven fabric",
+  "product_category": "Woven fabric web (line-scan crops)",
+  "requires_reference": false,
+  "mm_per_pixel": null,
+  "detectors": [
+    {
+      "type": "segnet",
+      "model": "fabric_segnet",
+      "version": "1.0.0",
+      "calibration": {
+        "type": "platt",
+        "a": 4.677082650093031,
+        "b": -2.4234120810206257
+      }
+    }
+  ],
+  "decision": {
+    "mode": "fusion",
+    "features": [
+      "fabric_segnet"
+    ],
+    "coef": [
+      4.677082650093031
+    ],
+    "intercept": -2.4234120810206257,
+    "t_low": 0.08140438035556256,
+    "t_high": 0.8896817445987192,
+    "image_level_validated": true,
+    "validated": true,
+    "evidence": "fabric_segnet-test"
+  }
+}

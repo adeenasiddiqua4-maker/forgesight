@@ -1,0 +1,400 @@
+[
+  {
+    "id": "fabric_segnet-test",
+    "model": "fabric_segnet",
+    "version": "1.0.0",
+    "material": "textiles",
+    "dataset": "ZJU-Leaper woven fabric",
+    "split": "official test split (sample)",
+    "task": "defect detection (image-level) + localization",
+    "n": 2000,
+    "metrics": {
+      "val": {
+        "auroc": 0.9619,
+        "n": 1200,
+        "tp": 521,
+        "fp": 20,
+        "fn": 79,
+        "tn": 580,
+        "accuracy": 0.9175,
+        "accuracy_ci95": [
+          0.9006,
+          0.9318
+        ],
+        "precision": 0.963,
+        "recall": 0.8683,
+        "recall_ci95": [
+          0.8389,
+          0.8931
+        ],
+        "f1": 0.9132,
+        "false_positive_rate": 0.0333,
+        "fpr_ci95": [
+          0.0217,
+          0.0509
+        ],
+        "false_negative_rate": 0.1317,
+        "fnr_ci95": [
+          0.1069,
+          0.1611
+        ]
+      },
+      "test": {
+        "auroc": 0.9636,
+        "n": 2000,
+        "tp": 866,
+        "fp": 35,
+        "fn": 134,
+        "tn": 965,
+        "accuracy": 0.9155,
+        "accuracy_ci95": [
+          0.9025,
+          0.9269
+        ],
+        "precision": 0.9612,
+        "recall": 0.866,
+        "recall_ci95": [
+          0.8435,
+          0.8857
+        ],
+        "f1": 0.9111,
+        "false_positive_rate": 0.035,
+        "fpr_ci95": [
+          0.0253,
+          0.0483
+        ],
+        "false_negative_rate": 0.134,
+        "fnr_ci95": [
+          0.1143,
+          0.1565
+        ],
+        "decision_threshold": 0.88,
+        "calibration": {
+          "ece": 0.0651,
+          "bins": [
+            {
+              "bin": "0.0-0.1",
+              "n": 901,
+              "mean_predicted": 0.0817,
+              "observed_rate": 0.081
+            },
+            {
+              "bin": "0.1-0.2",
+              "n": 39,
+              "mean_predicted": 0.1388,
+              "observed_rate": 0.1538
+            },
+            {
+              "bin": "0.2-0.3",
+              "n": 20,
+              "mean_predicted": 0.249,
+              "observed_rate": 0.2
+            },
+            {
+              "bin": "0.3-0.4",
+              "n": 10,
+              "mean_predicted": 0.3559,
+              "observed_rate": 0.3
+            },
+            {
+              "bin": "0.4-0.5",
+              "n": 4,
+              "mean_predicted": 0.4453,
+              "observed_rate": 0.0
+            },
+            {
+              "bin": "0.5-0.6",
+              "n": 13,
+              "mean_predicted": 0.5609,
+              "observed_rate": 0.2308
+            },
+            {
+              "bin": "0.6-0.7",
+              "n": 18,
+              "mean_predicted": 0.6542,
+              "observed_rate": 0.1667
+            },
+            {
+              "bin": "0.7-0.8",
+              "n": 26,
+              "mean_predicted": 0.7566,
+              "observed_rate": 0.3846
+            },
+            {
+              "bin": "0.8-0.9",
+              "n": 198,
+              "mean_predicted": 0.879,
+              "observed_rate": 0.6869
+            },
+            {
+              "bin": "0.9-1.0",
+              "n": 771,
+              "mean_predicted": 0.904,
+              "observed_rate": 0.9883
+            }
+          ]
+        }
+      },
+      "test_triage": {
+        "n": 2000,
+        "t_low": 0.0814,
+        "t_high": 0.8897,
+        "auto_pass": 0,
+        "auto_defective": 868,
+        "sent_to_review": 1132,
+        "review_rate": 0.566,
+        "auto_decision_accuracy": 0.9724,
+        "auto_decision_accuracy_ci95": [
+          0.9592,
+          0.9814
+        ],
+        "escaped_defects": 0,
+        "escape_rate_of_defects": 0.0,
+        "escape_rate_ci95": [
+          0.0,
+          0.0038
+        ],
+        "false_rejects": 24,
+        "false_reject_rate_of_good": 0.024,
+        "false_reject_ci95": [
+          0.0162,
+          0.0355
+        ]
+      },
+      "operating_points": [
+        {
+          "validation_tolerance": 0.0,
+          "shipped": false,
+          "val": {
+            "n": 1200,
+            "t_low": 0.0814,
+            "t_high": 0.9039,
+            "auto_pass": 0,
+            "auto_defective": 343,
+            "sent_to_review": 857,
+            "review_rate": 0.7142,
+            "auto_decision_accuracy": 1.0,
+            "auto_decision_accuracy_ci95": [
+              0.9889,
+              1.0
+            ],
+            "escaped_defects": 0,
+            "escape_rate_of_defects": 0.0,
+            "escape_rate_ci95": [
+              0.0,
+              0.0064
+            ],
+            "false_rejects": 0,
+            "false_reject_rate_of_good": 0.0,
+            "false_reject_ci95": [
+              0.0,
+              0.0064
+            ]
+          },
+          "test": {
+            "n": 2000,
+            "t_low": 0.0814,
+            "t_high": 0.9039,
+            "auto_pass": 0,
+            "auto_defective": 530,
+            "sent_to_review": 1470,
+            "review_rate": 0.735,
+            "auto_decision_accuracy": 0.9981,
+            "auto_decision_accuracy_ci95": [
+              0.9894,
+              0.9997
+            ],
+            "escaped_defects": 0,
+            "escape_rate_of_defects": 0.0,
+            "escape_rate_ci95": [
+              0.0,
+              0.0038
+            ],
+            "false_rejects": 1,
+            "false_reject_rate_of_good": 0.001,
+            "false_reject_ci95": [
+              0.0002,
+              0.0056
+            ]
+          }
+        },
+        {
+          "validation_tolerance": 0.02,
+          "shipped": true,
+          "val": {
+            "n": 1200,
+            "t_low": 0.0814,
+            "t_high": 0.8897,
+            "auto_pass": 0,
+            "auto_defective": 514,
+            "sent_to_review": 686,
+            "review_rate": 0.5717,
+            "auto_decision_accuracy": 0.9767,
+            "auto_decision_accuracy_ci95": [
+              0.9596,
+              0.9866
+            ],
+            "escaped_defects": 0,
+            "escape_rate_of_defects": 0.0,
+            "escape_rate_ci95": [
+              0.0,
+              0.0064
+            ],
+            "false_rejects": 12,
+            "false_reject_rate_of_good": 0.02,
+            "false_reject_ci95": [
+              0.0115,
+              0.0346
+            ]
+          },
+          "test": {
+            "n": 2000,
+            "t_low": 0.0814,
+            "t_high": 0.8897,
+            "auto_pass": 0,
+            "auto_defective": 868,
+            "sent_to_review": 1132,
+            "review_rate": 0.566,
+            "auto_decision_accuracy": 0.9724,
+            "auto_decision_accuracy_ci95": [
+              0.9592,
+              0.9814
+            ],
+            "escaped_defects": 0,
+            "escape_rate_of_defects": 0.0,
+            "escape_rate_ci95": [
+              0.0,
+              0.0038
+            ],
+            "false_rejects": 24,
+            "false_reject_rate_of_good": 0.024,
+            "false_reject_ci95": [
+              0.0162,
+              0.0355
+            ]
+          }
+        },
+        {
+          "validation_tolerance": 0.05,
+          "shipped": false,
+          "val": {
+            "n": 1200,
+            "t_low": 0.0814,
+            "t_high": 0.8558,
+            "auto_pass": 419,
+            "auto_defective": 555,
+            "sent_to_review": 226,
+            "review_rate": 0.1883,
+            "auto_decision_accuracy": 0.9487,
+            "auto_decision_accuracy_ci95": [
+              0.933,
+              0.9608
+            ],
+            "escaped_defects": 20,
+            "escape_rate_of_defects": 0.0333,
+            "escape_rate_ci95": [
+              0.0217,
+              0.0509
+            ],
+            "false_rejects": 30,
+            "false_reject_rate_of_good": 0.05,
+            "false_reject_ci95": [
+              0.0352,
+              0.0705
+            ]
+          },
+          "test": {
+            "n": 2000,
+            "t_low": 0.0814,
+            "t_high": 0.8558,
+            "auto_pass": 723,
+            "auto_defective": 935,
+            "sent_to_review": 342,
+            "review_rate": 0.171,
+            "auto_decision_accuracy": 0.9487,
+            "auto_decision_accuracy_ci95": [
+              0.937,
+              0.9584
+            ],
+            "escaped_defects": 34,
+            "escape_rate_of_defects": 0.034,
+            "escape_rate_ci95": [
+              0.0244,
+              0.0471
+            ],
+            "false_rejects": 51,
+            "false_reject_rate_of_good": 0.051,
+            "false_reject_ci95": [
+              0.039,
+              0.0664
+            ]
+          }
+        },
+        {
+          "validation_tolerance": 0.1,
+          "shipped": false,
+          "val": {
+            "n": 1200,
+            "t_low": 0.3783,
+            "t_high": 0.7294,
+            "auto_pass": 580,
+            "auto_defective": 594,
+            "sent_to_review": 26,
+            "review_rate": 0.0217,
+            "auto_decision_accuracy": 0.8978,
+            "auto_decision_accuracy_ci95": [
+              0.8791,
+              0.9138
+            ],
+            "escaped_defects": 60,
+            "escape_rate_of_defects": 0.1,
+            "escape_rate_ci95": [
+              0.0785,
+              0.1266
+            ],
+            "false_rejects": 60,
+            "false_reject_rate_of_good": 0.1,
+            "false_reject_ci95": [
+              0.0785,
+              0.1266
+            ]
+          },
+          "test": {
+            "n": 2000,
+            "t_low": 0.3783,
+            "t_high": 0.7294,
+            "auto_pass": 967,
+            "auto_defective": 989,
+            "sent_to_review": 44,
+            "review_rate": 0.022,
+            "auto_decision_accuracy": 0.9146,
+            "auto_decision_accuracy_ci95": [
+              0.9014,
+              0.9262
+            ],
+            "escaped_defects": 85,
+            "escape_rate_of_defects": 0.085,
+            "escape_rate_ci95": [
+              0.0693,
+              0.1039
+            ],
+            "false_rejects": 82,
+            "false_reject_rate_of_good": 0.082,
+            "false_reject_ci95": [
+              0.0666,
+              0.1006
+            ]
+          }
+        }
+      ]
+    },
+    "notes": [
+      "Trained and measured on ZJU-Leaper woven fabric images (19 patterns, 512x512 line-scan crops). Other fabrics, knits, prints, colours, cameras or lighting need their own validation.",
+      "Defect regions come from boxes around the dataset's masks, so outlines are coarse. Single class 'defect': no defect types.",
+      "Test sample: 1000 defective + 1000 normal images from the official test split; the real defect rate is lower (about 25%).",
+      "Data licence: ZJU-Leaper is CC BY-NC-SA 4.0 (non-commercial use only)."
+    ],
+    "created_at": "2026-11-16T09:22:15+00:00",
+    "hardware": "CPU x4 threads (no GPU)"
+  }
+]
